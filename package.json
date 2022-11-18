@@ -1,0 +1,29 @@
+{
+  "name": "h264-hardware-acceleration",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "webpack -w",
+    "build": "webpack",
+    "demo": "badcert -o index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scaret/h264-hardware-acceleration.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/scaret/h264-hardware-acceleration/issues"
+  },
+  "homepage": "https://github.com/scaret/h264-hardware-acceleration#readme",
+  "dependencies": {
+    "sdp-transform": "^2.14.1",
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.9.3",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.0"
+  }
+}
