@@ -54,8 +54,26 @@ const start = async ()=>{
             pcRecv?.addIceCandidate(evt.candidate)
         }
     }
+    pcRecv.ontrack = (evt) =>{
+        const $video = document.getElementById('remoteVideo') as HTMLVideoElement
+        if (!$video.srcObject){
+            $video.srcObject = new MediaStream()
+            $video.onresize = (evt)=>{
+                console.log(`resize`, $video.clientWidth, $video.clientHeight)
+            }
+        }
+        ($video.srcObject as MediaStream).addTrack(evt.track)
+        $video.style.display = 'block'
+        $video.play()
+    }
     if (trackType === 'canvas'){
-        const fakeMedia = getFakeMedia({video: true, audio: false})
+        const fakeMedia = getFakeMedia({
+            video: {
+                type: 'clock',
+                width: 640,
+                height: 480,
+                frameRate: 15,
+            }, audio: false})
         if (!fakeMedia.video?.track){
             return result
         }
@@ -146,7 +164,9 @@ const start = async ()=>{
                     return
                 }
 
-                console.error(`frame`, chunk)
+                if (chunk.type === 'key'){
+                    console.error(`key frame`, chunk)
+                }
 
                 if (!dumpStartAt){
                     dumpStartAt = Date.now()
@@ -176,7 +196,7 @@ const start = async ()=>{
 
 
     let lastStats: RTCStatsReport|null = null
-    timer = setInterval(async ()=>{
+    const updateStats = async ()=>{
         if (!pcSend) return
         const stats = await pcSend.getStats(null)
         lastStats = stats
@@ -193,9 +213,11 @@ const start = async ()=>{
         const $elem = document.getElementById('result')
         const html = `<h1><pre>${JSON.stringify(result, null, 2)}</pre></h1>`
         if ($elem && $elem.innerHTML !== html ){
+            console.error(`Changed Codec Result`, $elem.innerHTML, html)
             $elem.innerHTML = html
         }
-    }, 1000)
+    }
+    timer = setInterval(updateStats, 100)
     // lastStats && lastStats.forEach((report)=>{
     //     if (report.encoderImplementation && report.encoderImplementation !== 'unknown'){
     //         result.encoderImplementation = report.encoderImplementation
