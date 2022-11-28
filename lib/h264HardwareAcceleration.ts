@@ -8,22 +8,62 @@ interface GetSupportInfoResult{
     encoderImplementation: string
 }
 
-const getSupportInfo = async ()=>{
+let pcSend:RTCPeerConnection|null = null
+let pcRecv:RTCPeerConnection|null = null
+let videoTrack:MediaStreamTrack|null = null
+let timer:any = null
+
+let dumpSize = 0
+const DUMP_SIZE_MAX = 10000000
+let dumpStartAt = 0
+let dumpEndAt = 0
+let dumpKey = 0
+let dumpDelta = 0
+
+let dumpBuffer: ArrayBuffer[] = []
+let trackType = ''
+
+const start = async ()=>{
+    trackType = (document.getElementById('trackType') as HTMLSelectElement).value
+    const enableDump = (document.getElementById('enableDump') as HTMLInputElement).checked
+    const $dumpSize = (document.getElementById('dumpSize') as HTMLSpanElement)
+    const $keyFrameCnt = (document.getElementById('keyFrameCnt') as HTMLSpanElement)
+    const $deltaFrameCnt = (document.getElementById('deltaFrameCnt') as HTMLSpanElement)
+    const $duation = (document.getElementById('duration') as HTMLSpanElement)
+
+    dumpSize = 0
+    dumpStartAt = 0
+    dumpEndAt = 0
+    dumpKey = 0
+    dumpDelta = 0
+    dumpBuffer = []
+
     const result:GetSupportInfoResult = {
         supportsH264: 'unknown',
         supportsH264Hardware: 'unknown',
         encoderImplementation: 'unknown'
     }
-    const pcSend = new RTCPeerConnection()
-    const pcRecv = new RTCPeerConnection()
+    pcSend = new RTCPeerConnection({
+        // @ts-ignore
+        encodedInsertableStreams: enableDump
+    })
+
+    pcRecv = new RTCPeerConnection()
     pcSend.onicecandidate = (evt)=>{
         if (evt.candidate){
-            pcRecv.addIceCandidate(evt.candidate)
+            pcRecv?.addIceCandidate(evt.candidate)
         }
     }
-    const fakeMedia = getFakeMedia({video: true, audio: false})
-    const videoTrack = fakeMedia.video?.track
-    if (!videoTrack){
+    if (trackType === 'canvas'){
+        const fakeMedia = getFakeMedia({video: true, audio: false})
+        if (!fakeMedia.video?.track){
+            return result
+        }
+        videoTrack = fakeMedia.video.track
+    } else if (trackType === 'displayMedia'){
+        const displayMedia = await navigator.mediaDevices.getDisplayMedia({video: true})
+        videoTrack = displayMedia.getVideoTracks()[0]
+    } else {
         return result
     }
     pcSend.addTrack(videoTrack)
@@ -93,11 +133,51 @@ const getSupportInfo = async ()=>{
     const answer = await pcRecv.createAnswer()
     await pcRecv.setLocalDescription(answer)
     await pcSend.setRemoteDescription(answer)
+
+    if (enableDump){
+        // @ts-ignore
+        const senderStreams = pcSend.getSenders()[0].createEncodedStreams()
+        console.error(`senderStreams`, senderStreams)
+        const readableStream = senderStreams.readable;
+        const writableStream = senderStreams.writable;
+        const transformStream = new TransformStream({
+            transform: (chunk:RTCEncodedVideoFrame, controller)=>{
+                if (dumpSize + chunk.data.byteLength > DUMP_SIZE_MAX) {
+                    return
+                }
+
+                console.error(`frame`, chunk)
+
+                if (!dumpStartAt){
+                    dumpStartAt = Date.now()
+                }
+                dumpEndAt = Date.now()
+                if (chunk.type === 'key'){
+                    dumpKey++
+                } else if (chunk.type === 'delta'){
+                    dumpDelta++
+                }
+
+                dumpSize += chunk.data.byteLength
+                const buffer = chunk.data.slice(0)
+                dumpBuffer.push(buffer)
+                controller.enqueue(chunk)
+
+                $dumpSize.innerHTML = `${Math.ceil(dumpSize / 1024)}KB`
+                $keyFrameCnt.innerHTML = `${dumpKey}`
+                $deltaFrameCnt.innerHTML = `${dumpDelta}`
+                $duation.innerHTML = `${Math.floor((dumpEndAt - dumpStartAt) / 60000)}:${Math.floor((dumpEndAt - dumpStartAt) / 1000 % 60).toString().padStart(2, '0')}.${Math.floor((dumpEndAt - dumpStartAt) % 1000).toString().padStart(3, '0')}`
+            },
+        });
+        readableStream
+            .pipeThrough(transformStream)
+            .pipeTo(writableStream);
+    }
+
+
     let lastStats: RTCStatsReport|null = null
-    for (let i = 0; i < 100; i++){
-        await new Promise((res)=>{
-            setTimeout(res, 10)
-        })
+    timer = setInterval(async ()=>{
+        if (!pcSend) return
         const stats = await pcSend.getStats(null)
         lastStats = stats
         stats.forEach((report)=>{
@@ -105,10 +185,17 @@ const getSupportInfo = async ()=>{
                 result.encoderImplementation = report.encoderImplementation
             }
         })
-        if (result.encoderImplementation !== 'unknown'){
-            break
+        if (result.encoderImplementation === 'OpenH264') {
+            result.supportsH264Hardware = 'no'
+        } else if (result.encoderImplementation !== 'unknown') {
+            result.supportsH264Hardware = 'yes'
         }
-    }
+        const $elem = document.getElementById('result')
+        const html = `<h1><pre>${JSON.stringify(result, null, 2)}</pre></h1>`
+        if ($elem && $elem.innerHTML !== html ){
+            $elem.innerHTML = html
+        }
+    }, 1000)
     // lastStats && lastStats.forEach((report)=>{
     //     if (report.encoderImplementation && report.encoderImplementation !== 'unknown'){
     //         result.encoderImplementation = report.encoderImplementation
@@ -117,21 +204,47 @@ const getSupportInfo = async ()=>{
     //         console.log(key, report[key])
     //     })
     // })
-    if (result.encoderImplementation === 'OpenH264') {
-        result.supportsH264Hardware = 'no'
-    } else if (result.encoderImplementation !== 'unknown') {
-        result.supportsH264Hardware = 'yes'
+
+    // videoTrack.stop()
+    // pcSend.close()
+    // pcRecv.close()
+
+    //
+    // return result
+}
+
+async function stop(){
+    console.error(`stop`)
+    if (dumpBuffer.length){
+        const blob = new Blob(dumpBuffer, {type: "application/file"});
+        const link = document.createElement('a');
+        link.href=window.URL.createObjectURL(blob);
+        link.download=`send.${trackType}.${Math.ceil((dumpEndAt - dumpStartAt) / 1000)}s.k${dumpKey}d${dumpDelta}.h264`;
+        link.click();
     }
-    videoTrack.stop()
-    pcSend.close()
-    pcRecv.close()
-    return result
+    pcSend?.close()
+    pcRecv?.close()
+    videoTrack?.stop()
+    clearInterval(timer)
+    pcSend = pcRecv = videoTrack = null
 }
 
 const main = async ()=>{
-    const info = await getSupportInfo()
-    document.body.innerHTML = `<h1><pre>${JSON.stringify(info, null, 2)}</pre></h1>`
+    // @ts-ignore
+    if (typeof RTCRtpSender !== 'undefined' && RTCRtpSender.prototype.createEncodedStreams){
+        const $enableDump = document.getElementById('enableDump') as HTMLInputElement
+        console.error($enableDump)
+            if ($enableDump){
+                $enableDump.disabled = false
+                $enableDump.checked = true
+            }
+    }
+
+    (document.getElementById('stop') as HTMLButtonElement).onclick = stop;
+    (document.getElementById('start') as HTMLButtonElement).onclick = start;
+
 }
 
 main()
+
 

@@ -1,9 +1,31 @@
 <html>
 <head>
     <link rel="icon" href="data:,">
-    <script src="dist/h264HardwareAcceleration.js"></script>
 </head>
 <body>
-
+    <select id="trackType">
+        <option value="canvas">canvas</option>
+        <option value="displayMedia">Display Media</option>
+    </select>
+    <label>
+        <input type="checkbox" id="enableDump" value="enableDump" disabled>
+        enableDump
+    </label>
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <div id="startInfo">
+        dump size <span id="dumpSize"></span>
+    </div>
+    <div>
+        key frame <span id="keyFrameCnt"></span>
+    </div>
+    <div>
+        delta frame <span id="deltaFrameCnt"></span>
+    </div>
+    <div>
+        duration <span id="duration"></span>
+    </div>
+    <div id="result"></div>
+    <script src="dist/h264HardwareAcceleration.js"></script>
 </body>
 </html>
