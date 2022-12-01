@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/scaret/h264-hardware-acceleration#readme",
   "dependencies": {
+    "@types/dom-webcodecs": "^0.1.5",
     "@types/sdp-transform": "^2.4.5",
     "getfakemedia": "^2.4.0",
     "sdp-transform": "^2.14.1",

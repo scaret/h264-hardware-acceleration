@@ -3,7 +3,8 @@ const path = require('path')
 module.exports = {
     mode: "production",
     entry: {
-        h264HardwareAcceleration: "./lib/h264HardwareAcceleration.ts"
+        h264HardwareAcceleration: "./lib/h264HardwareAcceleration.ts",
+        webcodecsDump: "./lib/webcodecsDump.ts"
     },
     output: {
         devtoolNamespace: 'fakeMediaDevices',
