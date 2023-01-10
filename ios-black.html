@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+<label>Width: <input type="number" value="1920" id="width"></label>
+<br/>
+<label>Height: <input type="number" value="1920" id="height"></label>
+<br/>
+<label>FrameRate: <input type="number" value="15" id="frameRate"></label>
+<br/>
+<label>FacingMode: <select id="facingMode">
+    <option value="user">user</option>
+    <option value="environment">environment</option>
+</select></label>
+<br/>
+<button id="openVideo"><h1>Open Video</h1></button>
+<br/>
+<div id="localVideoWrapper"></div>
+<script>
+    document.getElementById('openVideo').onclick = async ()=>{
+        const videoConstraint = {
+            width: parseInt(document.getElementById('width').value),
+            height: parseInt(document.getElementById('height').value),
+            frameRate: parseInt(document.getElementById('frameRate').value),
+            facingMode: document.getElementById('facingMode').value,
+        }
+        console.log(videoConstraint)
+        const mediaStream = await navigator.mediaDevices.getUserMedia({video:videoConstraint})
+
+        const $video = document.createElement('video')
+        $video.playsInline = true
+        $video.muted = true
+        $video.autoplay = true
+        $video.controls = true
+        $video.width = "800"
+
+        document.getElementById('localVideoWrapper').prepend($video)
+        $video.srcObject = mediaStream
+        $video.play()
+    }
+
+</script>
+</body>
+</html>
