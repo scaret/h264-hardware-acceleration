@@ -98,7 +98,8 @@ const start = async ()=>{
     // console.log(JSON.stringify(res.media[0].rtp, null, 2))
     // console.log(JSON.stringify(res.media[0].fmtp, null, 2))
     // 在这里删除其他codec
-    let H264CodecKeyword = '42001f'
+    // @ts-ignore
+    let H264CodecKeyword = document.getElementById('profileLevel').value
 
     let H264PayloadToDelete: number[] = []
     let payloadsToDelete: number[] = []
@@ -241,7 +242,8 @@ async function stop(){
         const blob = new Blob(dumpBuffer, {type: "application/file"});
         const link = document.createElement('a');
         link.href=window.URL.createObjectURL(blob);
-        link.download=`send.${trackType}.${Math.ceil((dumpEndAt - dumpStartAt) / 1000)}s.k${dumpKey}d${dumpDelta}.h264`;
+        // @ts-ignore
+        link.download=`send.${trackType}.${Math.ceil((dumpEndAt - dumpStartAt) / 1000)}s.k${dumpKey}d${dumpDelta}.${document.getElementById('profileLevel').value}.h264`;
         link.click();
     }
     pcSend?.close()
