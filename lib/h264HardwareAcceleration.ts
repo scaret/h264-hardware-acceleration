@@ -81,6 +81,9 @@ const start = async ()=>{
     } else if (trackType === 'displayMedia'){
         const displayMedia = await navigator.mediaDevices.getDisplayMedia({video: true})
         videoTrack = displayMedia.getVideoTracks()[0]
+    } else if (trackType === 'camera') {
+        const userMedia = await navigator.mediaDevices.getUserMedia({video: true})
+        videoTrack = userMedia.getVideoTracks()[0]
     } else {
         return result
     }
