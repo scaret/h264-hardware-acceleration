@@ -110,9 +110,9 @@ const start = async ()=>{
         const fakeMedia = getFakeMedia({
             video: {
                 type: 'clock',
-                width: 640,
-                height: 480,
-                frameRate: 15,
+                width: 3840,
+                height: 2160,
+                frameRate: 60,
             }, audio: false})
         if (!fakeMedia.video?.track){
             return result
