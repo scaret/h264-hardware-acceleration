@@ -18,6 +18,29 @@
     </label>
     <button id="start">Start</button>
     <button id="stop">Stop</button>
+    <br/>
+    <br/>
+    <label>
+        Content Hint
+        <select id="contentHint">
+            <option value="" selected>default</option>
+            <option value="motion">motion</option>
+            <option value="detail">detail</option>
+        </select>
+    </label>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <label>
+        maxBitrate
+        <input id="maxBitrate" value="0" step="10000" type="number">
+    </label>
+    <input type="button" id="update" value="Update">
+    <br/>
+    <br/>
+    <pre>
+        googAvailableSendBandwidth <span id="googAvailableSendBandwidth"></span>
+        googTargetEncBitrate       <span id="googTargetEncBitrate"></span>
+        googActualEncBitrate       <span id="googActualEncBitrate"></span>
+    </pre>
     <div id="startInfo">
         dump size <span id="dumpSize"></span>
     </div>

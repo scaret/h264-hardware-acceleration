@@ -12,6 +12,7 @@ interface GetSupportInfoResult{
 let pcSend:RTCPeerConnection|null = null
 let pcRecv:RTCPeerConnection|null = null
 let videoTrack:MediaStreamTrack|null = null
+let sender:RTCRtpSender|null = null
 let timer:any = null
 
 let dumpSize = 0
@@ -23,6 +24,24 @@ let dumpDelta = 0
 
 let dumpBuffer: ArrayBuffer[] = []
 let trackType = ''
+
+const statsKeys = [
+    'googFrameWidthInput',
+    'googFrameWidthSent',
+    'googFrameHeightInput',
+    'googFrameHeightSent',
+    // 'googFrameRateInput',
+    // 'googFrameRateSent',
+    'googHasEnteredLowResolution',
+    'googCpuLimitedResolution',
+    'googBandwidthLimitedResolution',
+]
+
+const statsKeys2 = [
+    'googAvailableSendBandwidth',
+    'googTargetEncBitrate',
+    'googActualEncBitrate'
+]
 
 const start = async ()=>{
     trackType = (document.getElementById('trackType') as HTMLSelectElement).value
@@ -45,6 +64,10 @@ const start = async ()=>{
         supportsH264Hardware: 'unknown',
         encoderImplementation: 'unknown'
     }
+    statsKeys.forEach((key) =>{
+        // @ts-ignore
+        result[key] = 'unknown'
+    })
 
     try{
         const canvas = document.createElement('canvas')
@@ -104,7 +127,10 @@ const start = async ()=>{
     } else {
         return result
     }
-    pcSend.addTrack(videoTrack)
+    const transceiver = pcSend.addTransceiver(videoTrack, {
+        direction: 'sendonly'
+    })
+    sender = transceiver.sender
     const offer1 = await pcSend.createOffer()
     if (!offer1.sdp) {
         return result
@@ -217,26 +243,44 @@ const start = async ()=>{
 
 
     let lastStats: RTCStatsReport|null = null
+
+    const $elem = document.getElementById('result')
     const updateStats = async ()=>{
         if (!pcSend) return
-        const stats = await pcSend.getStats(null)
-        lastStats = stats
-        stats.forEach((report)=>{
-            if (report.encoderImplementation && report.encoderImplementation !== 'unknown'){
-                result.encoderImplementation = report.encoderImplementation
+        // @ts-ignore
+        pcSend.getStats((res)=>{
+            const stats = res.result()
+            lastStats = stats
+            stats.forEach((report: any)=>{
+                // console.error('========')
+                report.names().forEach((key: string)=>{
+                    const value = report.stat(key)
+                    if (key === 'codecImplementationName') {
+                        if (value !== 'unknown') {
+                            result.encoderImplementation = value
+                        }
+                        if (result.encoderImplementation === 'OpenH264') {
+                            result.supportsH264Hardware = 'no'
+                        } else if (result.encoderImplementation !== 'unknown') {
+                            result.supportsH264Hardware = 'yes'
+                        }
+                    }
+                    if (statsKeys.indexOf(key) > -1) {
+                        // @ts-ignore
+                        result[key] = value
+                    }
+                    if (statsKeys2.indexOf(key) > -1) {
+                        // @ts-ignore
+                        document.getElementById(key).innerText = value
+                    }
+                })
+            })
+            const html = `<h1><pre>${JSON.stringify(result, null, 2)}</pre></h1>`
+            if ($elem && $elem.innerHTML !== html ){
+                console.error(`Changed Codec Result`, $elem.innerHTML, html)
+                $elem.innerHTML = html
             }
         })
-        if (result.encoderImplementation === 'OpenH264') {
-            result.supportsH264Hardware = 'no'
-        } else if (result.encoderImplementation !== 'unknown') {
-            result.supportsH264Hardware = 'yes'
-        }
-        const $elem = document.getElementById('result')
-        const html = `<h1><pre>${JSON.stringify(result, null, 2)}</pre></h1>`
-        if ($elem && $elem.innerHTML !== html ){
-            console.error(`Changed Codec Result`, $elem.innerHTML, html)
-            $elem.innerHTML = html
-        }
     }
     timer = setInterval(updateStats, 100)
     // lastStats && lastStats.forEach((report)=>{
@@ -273,6 +317,25 @@ async function stop(){
     pcSend = pcRecv = videoTrack = null
 }
 
+async function update(){
+    const contentHint = (document.getElementById('contentHint') as HTMLSelectElement).value
+    console.error(`contentHint ${videoTrack?.contentHint} => ${contentHint}`)
+    // @ts-ignore
+    videoTrack.contentHint = contentHint
+    const maxBitrate = parseInt((document.getElementById('maxBitrate') as HTMLInputElement).value)
+    console.error(`contentHint ${videoTrack?.contentHint} => ${contentHint}`)
+    if (sender) {
+        const parameter = sender.getParameters() as any
+        console.error(`bitrate ${parameter.encodings[0].maxBitrate} =>${maxBitrate}`)
+        if (maxBitrate > 0){
+            parameter.encodings[0].maxBitrate = maxBitrate
+        } else {
+            delete parameter.encodings[0].maxBitrate
+        }
+        sender.setParameters(parameter)
+    }
+}
+
 const main = async ()=>{
     // @ts-ignore
     if (typeof RTCRtpSender !== 'undefined' && RTCRtpSender.prototype.createEncodedStreams){
@@ -286,6 +349,7 @@ const main = async ()=>{
 
     (document.getElementById('stop') as HTMLButtonElement).onclick = stop;
     (document.getElementById('start') as HTMLButtonElement).onclick = start;
+    (document.getElementById('update') as HTMLButtonElement).onclick = update;
 
 }
 
