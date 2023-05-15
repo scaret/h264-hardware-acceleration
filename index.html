@@ -37,9 +37,12 @@
     <br/>
     <br/>
     <pre>
-        googAvailableSendBandwidth <span id="googAvailableSendBandwidth"></span>
-        googTargetEncBitrate       <span id="googTargetEncBitrate"></span>
-        googActualEncBitrate       <span id="googActualEncBitrate"></span>
+        googAvailableSendBandwidth  <span id="googAvailableSendBandwidth"></span>
+        googFrameRateInput          <span id="googFrameRateInput"></span>
+        googFrameRateSent           <span id="googFrameRateSent"></span>
+        googEncodeUsagePercent      <span id="googEncodeUsagePercent"></span>
+        googTargetEncBitrate        <span id="googTargetEncBitrate"></span>
+        googActualEncBitrate        <span id="googActualEncBitrate"></span>
     </pre>
     <div id="startInfo">
         dump size <span id="dumpSize"></span>
@@ -54,7 +57,7 @@
         duration <span id="duration"></span>
     </div>
     <div id="result"></div>
-    <video id="remoteVideo" style="display: none" muted playsinline autoplay controls></video>
+    <video id="remoteVideo" style="display: none; max-width: 800px; max-height:600px" playsinline autoplay controls></video>
     <script src="dist/h264HardwareAcceleration.js"></script>
 </body>
 </html>

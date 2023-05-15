@@ -12,6 +12,7 @@ interface GetSupportInfoResult{
 let pcSend:RTCPeerConnection|null = null
 let pcRecv:RTCPeerConnection|null = null
 let videoTrack:MediaStreamTrack|null = null
+let audioTrack:MediaStreamTrack|null = null
 let sender:RTCRtpSender|null = null
 let timer:any = null
 
@@ -30,14 +31,15 @@ const statsKeys = [
     'googFrameWidthSent',
     'googFrameHeightInput',
     'googFrameHeightSent',
-    // 'googFrameRateInput',
-    // 'googFrameRateSent',
     'googHasEnteredLowResolution',
     'googCpuLimitedResolution',
     'googBandwidthLimitedResolution',
 ]
 
 const statsKeys2 = [
+    'googFrameRateInput',
+    'googFrameRateSent',
+    'googEncodeUsagePercent',
     'googAvailableSendBandwidth',
     'googTargetEncBitrate',
     'googActualEncBitrate'
@@ -122,8 +124,15 @@ const start = async ()=>{
         const displayMedia = await navigator.mediaDevices.getDisplayMedia({video: true})
         videoTrack = displayMedia.getVideoTracks()[0]
     } else if (trackType === 'camera') {
-        const userMedia = await navigator.mediaDevices.getUserMedia({video: true})
-        videoTrack = userMedia.getVideoTracks()[0]
+        const userMedia = await navigator.mediaDevices.getUserMedia({audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                sampleRate: 48000,
+                channelCount: 2
+            }})
+        // videoTrack = userMedia.getVideoTracks()[0]
+        videoTrack = userMedia.getAudioTracks()[0]
     } else {
         return result
     }
@@ -255,6 +264,7 @@ const start = async ()=>{
                 // console.error('========')
                 report.names().forEach((key: string)=>{
                     const value = report.stat(key)
+                    // console.error(key, typeof value, value)
                     if (key === 'codecImplementationName') {
                         if (value !== 'unknown') {
                             result.encoderImplementation = value
