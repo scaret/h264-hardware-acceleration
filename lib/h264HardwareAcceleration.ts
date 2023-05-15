@@ -3,6 +3,7 @@ import * as sdpTransform from 'sdp-transform';
 import {getFakeMedia} from "getfakemedia";
 
 interface GetSupportInfoResult{
+    gpu: string,
     supportsH264: 'yes'|'no'|'unknown',
     supportsH264Hardware: 'yes'|'no'|'unknown'
     encoderImplementation: string
@@ -39,10 +40,26 @@ const start = async ()=>{
     dumpBuffer = []
 
     const result:GetSupportInfoResult = {
+        gpu: 'unknown',
         supportsH264: 'unknown',
         supportsH264Hardware: 'unknown',
         encoderImplementation: 'unknown'
     }
+
+    try{
+        const canvas = document.createElement('canvas')
+        const gl = canvas.getContext('webgl')
+        if (gl) {
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
+            if (debugInfo) {
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+                result.gpu = renderer
+            }
+        }
+    } catch(e) {
+        console.error(e)
+    }
+
     pcSend = new RTCPeerConnection({
         // @ts-ignore
         encodedInsertableStreams: enableDump
